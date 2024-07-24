@@ -1,5 +1,15 @@
-import { IsString, IsNotEmpty, MinLength, IsEmail, IsNumber, IsPhoneNumber } from "class-validator";
-
+import {
+  IsString,
+  IsNotEmpty,
+  MinLength,
+  IsEmail,
+  IsNumber,
+  IsPhoneNumber,
+} from 'class-validator';
+export interface ILoginUser {
+  email: string;
+  password: string;
+}
 export class CreateUserDto {
   @IsNotEmpty()
   @IsString()
@@ -19,10 +29,8 @@ export class CreateUserDto {
   email: string;
 
   @IsNotEmpty()
-  @IsNumber()
   @IsPhoneNumber()
   phoneNumber: string;
-
 }
 export interface IUser {
   firstName: string;
