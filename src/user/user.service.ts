@@ -56,7 +56,7 @@ export class UserService {
         );
       const compared = bcrypt.compareSync(password, user.password);
       if (!compared) return new UnauthorizedException('Incorrect Password');
-      return { email: user.email, id: user._id };
+      return { userId: user._id };
     } catch (error) {
       return new UnauthorizedException('Try again after some time');
     }

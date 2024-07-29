@@ -5,7 +5,6 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from './user.schema';
 import * as bcrypt from 'bcryptjs';
 @Module({
-  exports: [UserService],
   imports: [
     MongooseModule.forFeatureAsync([
       {
@@ -24,5 +23,6 @@ import * as bcrypt from 'bcryptjs';
   ],
   controllers: [UserController],
   providers: [UserService],
+  exports: [UserService, MongooseModule],
 })
 export class UserModule {}

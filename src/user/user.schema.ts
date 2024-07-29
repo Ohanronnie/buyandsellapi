@@ -1,5 +1,7 @@
+import { forwardRef } from '@nestjs/common';
 import { Schema, SchemaFactory, Prop } from '@nestjs/mongoose';
-
+import * as mongoose from 'mongoose';
+import { Product } from 'src/products/products.schema';
 @Schema({ timestamps: true })
 export class User {
   @Prop({ required: true })
@@ -14,5 +16,14 @@ export class User {
   phoneNumber: string;
   @Prop({ type: String })
   profilePicture: string;
+  @Prop({
+    type: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product',
+      },
+    ],
+  })
+  products: Product[];
 }
 export const UserSchema = SchemaFactory.createForClass(User);
