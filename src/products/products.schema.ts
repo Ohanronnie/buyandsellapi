@@ -25,6 +25,8 @@ export class Product {
   @Prop({ type: Number, required: true })
   price: number;
   @Prop({ type: String, required: true })
+  currencyCode: string;
+  @Prop({ type: String, required: true })
   category: string;
   @Prop({ type: [String], required: true })
   imageUrl: string[];
