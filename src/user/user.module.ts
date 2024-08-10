@@ -15,6 +15,15 @@ import * as bcrypt from 'bcryptjs';
             if (this.isNew || this.isModified('password')) {
               this.password = bcrypt.hashSync(this.password);
             }
+            if (
+              this.isNew ||
+              this.isModified('firstName') ||
+              this.isModified('lastName')
+            ) {
+              this.firstName = this.firstName.trim();
+              this.lastName = this.lastName.trim();
+              this.fullName = `${this.firstName} ${this.lastName}`;
+            }
           });
           return schema;
         },

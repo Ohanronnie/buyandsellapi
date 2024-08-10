@@ -7,17 +7,8 @@ import * as mongoose from 'mongoose';
 
 @Schema({ timestamps: true })
 export class Product {
-  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }] })
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
   user: User;
-  @Prop({
-    type: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Rating',
-      },
-    ],
-  })
-  ratings: Rating[];
   @Prop({ type: String, required: true })
   name: string;
   @Prop({ type: String, required: true })

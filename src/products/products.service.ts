@@ -76,37 +76,99 @@ export class ProductsService {
     }));
   }
   async getProductById(productId: Types.ObjectId) {
-    const product = await this.productModel
-      .findById(productId)
-      .populate('ratings user');
-    if (!product) return new NotFoundException('Product not found');
-    const averageRating = (ratings: Rating[]) => {
-      return (
-        ratings.reduce(
-          (accumulator, currentValue) => accumulator + currentValue.rating,
-          0,
-        ) / ratings.length
-      );
-    };
-    const ratingCount = (rating: Rating[]) => {
-      return rating.reduce((accumulator, current) => {
-        let a = accumulator;
-        let c = current.rating;
-        let b = a[c];
-        return b ? { ...a, [c]: b + 1 } : { ...a, [c]: 1 };
-      }, {});
-    };
-    return {
-      productId: product._id,
-      name: product.name,
-      price: product.price,
-      currencyCode: product.currencyCode,
-      description: product.description,
-      averageRating: averageRating(product.ratings),
-      totalRating: product.ratings.length,
-      ratingCounts: ratingCount(product.ratings),
-      sellerName: product.user.firstName + ' ' + product.user.lastName,
-      // suggestedProduct
-    };
+    try {
+      const product = await this.productModel
+        .findById(productId)
+        .populate('user');
+      const ratings = await this.ratingModel
+        .find({ product })
+        .populate('product');
+      
+      if (!product) return new NotFoundException('Product not found');
+      const averageRating = (ratings: Rating[]) => {
+        return (
+          ratings.reduce(
+            (accumulator, currentValue) => accumulator + currentValue.rating,
+            0,
+          ) / ratings.length
+        );
+      };
+      const ratingCount = (rating: Rating[]) => {
+        return rating.reduce((accumulator, current) => {
+          let a = accumulator;
+          let c = current.rating;
+          let b = a[c];
+          return b ? { ...a, [c]: b + 1 } : { ...a, [c]: 1 };
+        }, {});
+      };
+      return {
+        productId: product._id,
+        name: product.name,
+        price: product.price,
+        currencyCode: product.currencyCode,
+        description: product.description,
+        averageRating: averageRating(ratings),
+        totalRating: ratings.length,
+        ratingCount: ratingCount(ratings),
+        sellerName: product.user.firstName + ' ' + product.user.lastName,
+        // suggestedProduct
+      };
+    } catch (error: any) {
+      return new NotFoundException('Product not found');
+    }
+  }
+  async rateProduct(
+    productId: Types.ObjectId,
+    userId: Types.ObjectId,
+    ratings: number,
+    comment: string,
+  ) {
+    try {
+      let product = await this.productModel.findById(productId);
+      let user = await this.userModel.findById(userId);
+      if (!product) return new NotFoundException('Product not found');
+      const rating = await this.ratingModel.create({
+        product,
+        user,
+        rating: ratings,
+        comment,
+      });
+      return true;
+    } catch (error: any) {
+      console.error(error);
+      return new BadRequestException('Something is wrong with your request.');
+    }
+  }
+  async getProductRatings(productId: Types.ObjectId) {
+    try {
+      const rating = await this.ratingModel.find({ product: productId }).populate("user");
+      const averageRating = (ratings: Rating[]) => {
+        return (
+          ratings.reduce(
+            (accumulator, currentValue) => accumulator + currentValue.rating,
+            0,
+          ) / ratings.length
+        );
+      };
+      const ratingCount = (rating: Rating[]) => {
+        return rating.reduce((accumulator, current) => {
+          let a = accumulator;
+          let c = current.rating;
+          let b = a[c];
+          return b ? { ...a, [c]: b + 1 } : { ...a, [c]: 1 };
+        }, {});
+      };
+      return {
+        averageRating: averageRating(rating),
+        totalRating: rating.length,
+        ratingCount: ratingCount(rating),
+        comments: rating.map(e => ({
+          username: e.user.fullName,
+          comment: e.comment
+        }))
+      }
+    } catch (error: any) {
+      return new NotFoundException("Rating not found")
+    }
   }
 }

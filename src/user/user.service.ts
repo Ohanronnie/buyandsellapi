@@ -18,7 +18,7 @@ export class UserService {
 
   async createUser(data: IUser) {
     try {
-      const { firstName, lastName, password, phoneNumber, email } = data;
+      const { firstName, role, lastName, password, phoneNumber, email } = data;
       const userExist = await this.userModel.findOne({ email });
 
       if (userExist)
@@ -30,7 +30,9 @@ export class UserService {
         email,
         phoneNumber,
         firstName,
+        role,
         lastName,
+        fullName: firstName.trim() + " " + lastName.trim(),
         password,
         profilePicture: 'avatar.jpg',
       });
@@ -40,6 +42,7 @@ export class UserService {
         message: 'Account created successfully.',
       };
     } catch (error) {
+      console.log(error)
       return new InternalServerErrorException(
         'Sorry... something went wrong, retry in a few minutes.',
       );
@@ -56,7 +59,7 @@ export class UserService {
         );
       const compared = bcrypt.compareSync(password, user.password);
       if (!compared) return new UnauthorizedException('Incorrect Password');
-      return { userId: user._id };
+      return { userId: user._id, roles: [user.role] };
     } catch (error) {
       return new UnauthorizedException('Try again after some time');
     }

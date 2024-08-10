@@ -4,10 +4,14 @@ import * as mongoose from 'mongoose';
 import { Product } from 'src/products/products.schema';
 @Schema({ timestamps: true })
 export class User {
-  @Prop({ required: true })
+  @Prop({ required: true, type: String })
   firstName: string;
-  @Prop({ required: true })
+  @Prop({ required: true, type: String })
   lastName: string;
+  @Prop({ required: true, type: String })
+  fullName: string;
+  @Prop({ type: String, required: true })
+  role: 'seller' | 'buyer';
   @Prop({ required: true, type: String })
   email: string;
   @Prop({ required: true, type: String })
@@ -16,14 +20,5 @@ export class User {
   phoneNumber: string;
   @Prop({ type: String })
   profilePicture: string;
-  @Prop({
-    type: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product',
-      },
-    ],
-  })
-  products: Product[];
 }
 export const UserSchema = SchemaFactory.createForClass(User);

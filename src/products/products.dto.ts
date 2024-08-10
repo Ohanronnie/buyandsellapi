@@ -2,13 +2,17 @@ import {
   ArrayNotEmpty,
   ArrayUnique,
   IsArray,
+  IsMongoId,
   IsNotEmpty,
   IsNumber,
   IsString,
   IsUrl,
+  Max,
+  Min,
   MinLength,
 } from 'class-validator';
 import { IsCurrencyCode } from './currency.validator';
+import { Type } from 'class-transformer';
 
 export class CreateProductDto {
   @IsNotEmpty()
@@ -44,4 +48,20 @@ export interface IProduct {
 }
 export interface ISort {
   order: string;
+}
+export class RateProductDto {
+  @IsNotEmpty()
+  @IsMongoId()
+  productId: string;
+
+  @IsNotEmpty()
+  @IsString()
+  comment: string;
+
+  @IsNotEmpty()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  @Max(5)
+  rating: number;
 }
