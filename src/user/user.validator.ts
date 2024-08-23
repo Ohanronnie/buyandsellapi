@@ -9,7 +9,7 @@ import {
 @ValidatorConstraint({ async: true })
 export class OneOfConstraint implements ValidatorConstraintInterface {
   validate(activities: any, args: ValidationArguments) {
-    return ['seller', 'buyer'].includes(activities)
+    return ['seller', 'buyer'].includes(activities);
   }
 }
 

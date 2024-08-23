@@ -32,7 +32,7 @@ export class UserService {
         firstName,
         role,
         lastName,
-        fullName: firstName.trim() + " " + lastName.trim(),
+        fullName: firstName.trim() + ' ' + lastName.trim(),
         password,
         profilePicture: 'avatar.jpg',
       });
@@ -42,7 +42,7 @@ export class UserService {
         message: 'Account created successfully.',
       };
     } catch (error) {
-      console.log(error)
+      console.log(error);
       return new InternalServerErrorException(
         'Sorry... something went wrong, retry in a few minutes.',
       );

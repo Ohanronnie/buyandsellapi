@@ -7,11 +7,20 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Product } from './products.schema';
-import mongoose, { Model, Types } from 'mongoose';
+import mongoose, { AggregateOptions, Model, PipelineStage, Types } from 'mongoose';
 import { Rating } from './rating.schema';
 import { User } from 'src/user/user.schema';
-import { CreateProductDto, IProduct, ISort } from './products.dto';
+import {
+  CATEGORY,
+  CreateProductDto,
+  IFilter,
+  IProduct,
+  ISort,
+  ISortAndFilter,
+} from './products.dto';
 import { CreateUserDto } from 'src/user/user.dto';
+import { PipelineCallback } from 'stream';
+import { of } from 'rxjs';
 
 @Injectable()
 export class ProductsService {
@@ -47,32 +56,109 @@ export class ProductsService {
       );
     }
   }
-  async getProducts(query: string, sort?: ISort) {
-    const products = await this.productModel
-      .find({
-        $or: [
-          {
-            name: {
-              $regex: query,
-              $options: 'i',
+  async getProducts(query: ISort & IFilter) {
+    const pipeline: PipelineStage[] = [
+      {
+        $match: {
+          $or: [
+            {
+              name: {
+                $regex: query.query,
+                $options: 'i',
+              },
             },
+            { description: { $regex: query.query, $options: 'i' } },
+            { category: { $regex: query.query, $options: 'i' } },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: 'ratings',
+          localField: '_id',
+          foreignField: 'product',
+          as: 'ratings',
+        },
+      },
+      {
+        $addFields: {
+          averageRating: {
+            $avg: '$ratings.rating',
           },
-          { description: { $regex: query, $options: 'i' } },
-          { category: { $regex: query, $options: 'i' } },
-        ],
-      })
-      .select('price name currencyCode');
-
-    if (sort) {
-      sort.order && sort.order === 'desc'
-        ? products.sort((a, b) => b.price - a.price)
-        : products.sort((a, b) => a.price - b.price);
+        },
+      },
+    ] as any;
+    if (query.rating) {
+      console.log(query.rating)
+      pipeline.push({
+        $match: {
+          averageRating: {
+            $gte: Number(query.rating),
+          },
+        },
+      });
     }
+    console.log(Object.values(CATEGORY))
+    if (query.priceFrom) {
+      pipeline.push({
+        $match: {
+          price: {
+            $gte: Number(query.priceFrom)
+          }
+        }
+      })
+    }
+    if (query.priceTo) {
+      pipeline.push({
+        $match: {
+          price: {
+            $lte: Number(query.priceTo)
+          }
+        }
+      })
+    }
+    if (query.category) {
+      
+    }
+    if (query.order === 'desc') {
+      pipeline.push({
+        $sort: {
+          price: -1,
+        },
+      });
+    } else if (query.order === 'asc') {
+      pipeline.push({
+        $sort: {
+          price: 1,
+        },
+      });
+    }
+    pipeline.push({
+      $project: {
+        price: 1,
+        name: 1,
+        currencyCode: 1,
+        averageRating: 1,
+      },
+    });
+    const products = await this.productModel.aggregate(pipeline);
+
+    //.select('price name currencyCode');
+    // console.log(products)
+
+    // if(query.order)
+   /* query.order && query.order === 'desc'
+      ? products.sort((a, b) => b.price - a.price)
+      : products.sort((a, b) => a.price - b.price);*/
+ 
+  
+
     return products.map((value) => ({
       productId: value._id,
       name: value.name,
       price: value.price,
       currencyCode: value.currencyCode,
+      averageRating: value.averageRating
     }));
   }
   async getProductById(productId: Types.ObjectId) {
@@ -80,36 +166,15 @@ export class ProductsService {
       const product = await this.productModel
         .findById(productId)
         .populate('user');
-      const ratings = await this.ratingModel
-        .find({ product })
-        .populate('product');
-      
       if (!product) return new NotFoundException('Product not found');
-      const averageRating = (ratings: Rating[]) => {
-        return (
-          ratings.reduce(
-            (accumulator, currentValue) => accumulator + currentValue.rating,
-            0,
-          ) / ratings.length
-        );
-      };
-      const ratingCount = (rating: Rating[]) => {
-        return rating.reduce((accumulator, current) => {
-          let a = accumulator;
-          let c = current.rating;
-          let b = a[c];
-          return b ? { ...a, [c]: b + 1 } : { ...a, [c]: 1 };
-        }, {});
-      };
+
       return {
         productId: product._id,
         name: product.name,
         price: product.price,
         currencyCode: product.currencyCode,
         description: product.description,
-        averageRating: averageRating(ratings),
-        totalRating: ratings.length,
-        ratingCount: ratingCount(ratings),
+        ...(await this.getProductRatings(productId)),
         sellerName: product.user.firstName + ' ' + product.user.lastName,
         // suggestedProduct
       };
@@ -141,7 +206,9 @@ export class ProductsService {
   }
   async getProductRatings(productId: Types.ObjectId) {
     try {
-      const rating = await this.ratingModel.find({ product: productId }).populate("user");
+      const rating = await this.ratingModel
+        .find({ product: productId })
+        .populate('user');
       const averageRating = (ratings: Rating[]) => {
         return (
           ratings.reduce(
@@ -162,13 +229,13 @@ export class ProductsService {
         averageRating: averageRating(rating),
         totalRating: rating.length,
         ratingCount: ratingCount(rating),
-        comments: rating.map(e => ({
+        comments: rating.map((e) => ({
           username: e.user.fullName,
-          comment: e.comment
-        }))
-      }
+          comment: e.comment,
+        })),
+      };
     } catch (error: any) {
-      return new NotFoundException("Rating not found")
+      return new NotFoundException('Rating not found');
     }
   }
 }

@@ -12,7 +12,11 @@ import {
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { CreateProductDto, RateProductDto } from './products.dto';
+import {
+  CreateProductDto,
+  RateProductDto,
+  sortAndFilterProductDto,
+} from './products.dto';
 import { Types } from 'mongoose';
 import { CurrentUser } from 'src/user/user.decorator';
 import { Roles } from 'src/auth/role.decorator';
@@ -25,7 +29,10 @@ export class ProductsController {
   @Roles(ROLES.SELLER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Post('/create')
-  async createProduct(@Body() body: CreateProductDto, @Request() req): Promise<{ statusCode: HttpStatus; success: boolean; message: string; }> {
+  async createProduct(
+    @Body() body: CreateProductDto,
+    @Request() req,
+  ): Promise<{ statusCode: HttpStatus; success: boolean; message: string }> {
     const result = await this.productService.createProduct(
       body,
       req.user.userId,
@@ -34,20 +41,17 @@ export class ProductsController {
     return {
       statusCode: HttpStatus.OK,
       success: true,
-      message: "Product created successfully"
+      message: 'Product created successfully',
     };
   }
   @Get('/search')
-  async getProducts(
-    @Query('query') query: string,
-    @Query('order') order: string,
-  ) {
-    if (!query?.trim()) return [];
-    const result = await this.productService.getProducts(query, { order });
+  async getProducts(@Query() query: sortAndFilterProductDto) {
+    // if (!query?.trim()) return [];
+    const result = await this.productService.getProducts(query);
     return {
       statusCode: HttpStatus.OK,
       success: true,
-      data: result
+      data: result,
     };
   }
   @Get('/get/:id')
@@ -57,12 +61,11 @@ export class ProductsController {
     return {
       statusCode: HttpStatus.OK,
       success: true,
-      data: product
+      data: product,
     };
   }
   @UseGuards(JwtAuthGuard)
   @Post('/rate')
-  
   async rateProduct(@Body() body: RateProductDto, @CurrentUser() user: any) {
     const result = await this.productService.rateProduct(
       body.productId as unknown as Types.ObjectId,
@@ -79,15 +82,15 @@ export class ProductsController {
       message: 'Product rated successfully',
     };
   }
-  
-  @Get("rating")
-  async getProductRating(@Query("productId") productId: Types.ObjectId) {
+
+  @Get('rating')
+  async getProductRating(@Query('productId') productId: Types.ObjectId) {
     const result = await this.productService.getProductRatings(productId);
     if (result instanceof HttpException) throw result;
     return {
       success: true,
       statusCode: HttpStatus.OK,
-      data: result
-    }
+      data: result,
+    };
   }
 }
